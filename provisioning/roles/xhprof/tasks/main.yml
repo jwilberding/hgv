@@ -32,7 +32,7 @@
 
 - name: Configure Nginx xhprof.conf
   template: src=etc/nginx/conf.d/xhprof.conf dest=/etc/nginx/conf.d/xhprof.conf owner=root group=root mode=0644
-  notify: nginx reload
+  notify: reload nginx
   tags: [ 'profiling', 'xhprof' ]
 
 - name: Configure ini

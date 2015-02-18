@@ -1,14 +1,12 @@
 ---
-- name: Install Nginx GPG key
-  apt_key: url=http://nginx.org/keys/nginx_signing.key state=present
-
 - name: Enable Nginx stable repo
-  apt_repository: repo='deb http://nginx.org/packages/ubuntu {{ ansible_lsb.codename }} nginx' state=present update_cache=yes
+  apt_repository: repo="ppa:nginx/stable"
+                  update_cache=yes
 
 - name: Install nginx
   apt: name=nginx state=present
   notify:
-    - nginx restart
+    - restart nginx
     - update-rc nginx
 
 - name: Ensure /etc/nginx directories exist
@@ -16,40 +14,64 @@
   with_items:
     - /etc/nginx/sites-available
     - /etc/nginx/sites-enabled
-  notify: nginx reload
+  notify: reload nginx
 
 - name: Configure /etc/nginx/nginx.conf
-  template: src=etc/nginx/nginx.conf dest=/etc/nginx/nginx.conf owner=root group=root mode=0644
-  notify: nginx restart
+  template: src=etc/nginx/nginx.conf
+            dest=/etc/nginx/nginx.conf
+            owner=root
+            group=root
+            mode=0644
+  notify: restart nginx
 
 - name: Do nginx upstream.conf
-  template: src=etc/nginx/conf.d/upstream.conf dest=/etc/nginx/conf.d/upstream.conf owner=root group=root mode=0644
-  notify: nginx restart
+  template: src=etc/nginx/conf.d/upstream.conf
+            dest=/etc/nginx/conf.d/upstream.conf
+            owner=root
+            group=root
+            mode=0644
+  notify: restart nginx
 
 - name: Remove default.conf
-  file: path=/etc/nginx/conf.d/default.conf state=absent
+  file: path=/etc/nginx/conf.d/default.conf
+        state=absent
 
 - name: Set up dashboard
-  template: src=etc/nginx/conf.d/dashboard.conf dest=/etc/nginx/conf.d/dashboard.conf owner=root group=root mode=0644
-  notify: nginx reload
+  template: src=etc/nginx/conf.d/dashboard.conf
+            dest=/etc/nginx/conf.d/dashboard.conf
+            owner=root
+            group=root
+            mode=0644
+  notify: reload nginx
   tags: [ 'docs', 'dashboard' ]
 
 - name: Ensure main docroot exists
   file: path=/nas/wp/www/ state=directory
 
 - name: Set up master docroot
-  file: path={{ vagrant_doc_root }} state=directory owner={{ web_user }} group={{ web_group }} mode=0775
+  file: path={{ vagrant_doc_root }}
+        state=directory
+        owner={{ web_user }}
+        group={{ web_group }}
+        mode=0775
 
-- name: Sites docroot link
-  file: dest={{ wp_doc_root }} src={{ vagrant_doc_root }} state=link
+- name: Write sites docroot symlink
+  file: dest={{ wp_doc_root }}
+        src={{ vagrant_doc_root }}
+        state=link
+  notify:
+    - restart nginx
 
 - name: Copy dashboard contents
-  synchronize: src=roles/nginx/templates{{ wp_doc_root }}/dashboard/ dest={{ wp_doc_root }}/dashboard group=no owner=no
+  synchronize: src=roles/nginx/templates{{ wp_doc_root }}/dashboard/
+               dest={{ wp_doc_root }}/dashboard
+               group=no
+               owner=no
   tags: [ 'docs', 'dashboard' ]
 
 - name: Copy README
-  synchronize: src=/vagrant/README.md dest={{ wp_doc_root }}/dashboard/README.md group=no owner=no
+  synchronize: src=/vagrant/README.md
+               dest={{ wp_doc_root }}/dashboard/README.md
+               group=no
+               owner=no
   tags: [ 'docs', 'dashboard' ]
-
-- name: Make sure Nginx is running
-  service: name=nginx state=started enabled=yes

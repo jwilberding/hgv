@@ -9,7 +9,7 @@
 
 - name: Set up admin
   template: src=etc/nginx/conf.d/admin.conf dest=/etc/nginx/conf.d/admin.conf owner=root group=root mode=0644
-  notify: nginx reload
+  notify: reload nginx
   tags: [ 'admin' ]
 
 - name: Ensure phpMyAdmin directory exists
